@@ -174,5 +174,50 @@ def do_multiply(expr1, expr2):
     '*' will not help you.
     """
     # Replace this with your solution.
-    raise NotImplementedError
+    expr = []
+    sexpr = []
 
+    if isinstance(expr1, Sum) and isinstance(expr2, Sum):
+##        print "two sums"
+##        print expr1
+##        print expr2
+        # Need to foil
+        for i in expr1:
+            for j in expr2:
+                pex = Product([i,j])
+                expr.append(pex)
+        return Sum(expr).flatten()
+    if isinstance(expr1, Sum) and isinstance(expr2, Product):
+##        print "sum and a product"
+##        print expr1
+##        print expr2
+        # Need to disribute
+        for i in expr1:
+            for j in expr2:
+                expr.append(j)
+            expr.append(i)
+            sexpr.append(Product(expr))
+            expr = []
+        return Sum(sexpr).flatten()
+
+    if isinstance(expr1, Product) and isinstance(expr2, Sum):
+##        print "product and a sum"
+##        print expr1
+##        print expr2
+        # Need to disribute
+        for i in expr2:
+            for j in expr1:
+                expr.append(j)
+            expr.append(i)
+            sexpr.append(Product(expr))
+            expr = []
+        return Sum(sexpr).flatten()
+    if isinstance(expr1, Product) and isinstance(expr2, Product):
+##        print "two products"
+##        print expr1
+##        print expr2
+        for i in expr1:
+            expr.append(i)
+        for j in expr2:
+            expr.append(j)
+        return Product(expr).flatten()

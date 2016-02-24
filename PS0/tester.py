@@ -107,7 +107,7 @@ def run_test(test, lab):
         raise Exception, "Test Error: Unknown TYPE '%s'.  Please make sure you have downloaded the latest version of the tester script.  If you continue to see this error, contact a TA."
 
 
-def test_offline(verbosity=1):
+def test_offline(verbosity=3):
     import tests as tests_module
     test_names = list(tests_module.__dict__.keys())
     test_names.sort()
