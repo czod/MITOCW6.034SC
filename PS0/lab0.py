@@ -23,7 +23,7 @@
 #   3. Python v3.0
 # Fill in your answer in the next line of code ("1", "2", or "3"):
 
-ANSWER_1 = 'fill-me-in'
+ANSWER_1 = '2'
 
 
 # Section 2: Programming warmup _____________________________________________
@@ -31,25 +31,62 @@ ANSWER_1 = 'fill-me-in'
 # Problem 2.1: Warm-Up Stretch
 
 def cube(x):
-    raise NotImplementedError
+    return x*x*x
+    #raise NotImplementedError
 
 def factorial(x):
-    raise NotImplementedError
+    n=1
+    if x == 0:return 1
+    for i in xrange(1,x+1):
+        n=n*i
+    return n
+    #raise NotImplementedError
 
 def count_pattern(pattern, lst):
-    raise NotImplementedError
+    import copy
+    pcount=0
+    for i in range(len(lst)):
+        clst = copy.deepcopy(lst)
+        slc = clst[i:i+len(pattern)]
+        print slc
+        if slc == pattern:
+            pcount+=1
+    return pcount
 
 
 # Problem 2.2: Expression depth
+##global count
+##count = 0
+##def depth(expr,count=0):
+##    if count == None: count = 0
+##    if count == 0 and not isinstance(expr,list):
+##        return count
+##    if isinstance(expr,list) and count == 0 and len(expr) < 2:
+##        count = 1
+##        return count
+##    for i in expr:
+##        #print i
+##        if isinstance(i,list):
+##            count = count + 1
+##            depth(i,count)
+##            return count
 
-def depth(expr):
-    raise NotImplementedError
-
-
+def depth(l):
+    if isinstance(l, list):
+        return 1 + max(depth(item) for item in l)
+    else:
+        return 0
+    
 # Problem 2.3: Tree indexing
 
 def tree_ref(tree, index):
-    raise NotImplementedError
+    #raise NotImplementedError
+    for i in range(len(index)):
+            #print i
+            branch = tree[index[i]]
+            tree = branch
+            #print tree
+    return tree    
 
 
 # Section 3: Symbolic algebra
