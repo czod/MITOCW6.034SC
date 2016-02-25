@@ -1,0 +1,3 @@
+[submodule "MPYLibs"]
+	path = MPYLibs
+	url = https://github.com/czod/MPYLibs.git
