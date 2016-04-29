@@ -3,7 +3,9 @@ from production import AND, OR, NOT, PASS, FAIL, IF, THEN, \
 from zookeeper import ZOOKEEPER_RULES
 import string
 from inspect import currentframe, getframeinfo
+import sys
 
+sys.setrecursionlimit(20000)
 frameinfo = getframeinfo(currentframe())
 
 
@@ -33,37 +35,9 @@ ACTIONS = [" has ",\
            " lays "\
            ]
 
-def backchain_to_goal_tree(rules,\
-                           hypothesis='',\
-                           permathesis = '',\
-                           chains='',\
-                           haction = '',\
-                           hsub='',\
-                           hobj = '',\
-                           toprint = 1,\
-                           hwords = []):
-    """ bogus!  I've been sending the whole chain through the recursion every time.  Maybe I should just be
-    sending the antecedent through each time and collecting the leaves into the chain on the head of each next recursion"""
-
-##    if backchain == '':
-##        backchain = OR(hypothesis)
-    if permathesis == '':
-        permathesis = hypothesis
-
-  
-##    if chains != '':
-##        chains = OR(chains)
-##        if toprint >=1:  print "chains: ", chains,' at line ', getframeinfo(currentframe()).lineno
-
-        
-    andAnte = []
-
-    if toprint >= 2: print "andAnte type is ",str(type(andAnte))        
-    if toprint ==2: print "permathesis is:  ",permathesis
-    if toprint >=1: print "hypothesis is:  ",hypothesis + ' at line ', getframeinfo(currentframe()).lineno
-
-    hwords = hypothesis.split()
+def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 0):
     
+    hwords = hypothesis.split()    
     for i in ACTIONS:
         if i in hypothesis:
             haction = i
@@ -71,9 +45,9 @@ def backchain_to_goal_tree(rules,\
             replacer = hsub+i
             hobj = hypothesis.replace(replacer,'')
             
-            if toprint ==2: print "subject is:  ",hsub
-            if toprint ==2: print "predicate is:  ",haction
-            if toprint ==2: print "object is:  ",hobj
+            if toprint ==1: print "subject is:  ",hsub
+            if toprint ==1: print "predicate is:  ",haction
+            if toprint ==1: print "object is:  ",hobj
             
             break
         
@@ -89,6 +63,28 @@ def backchain_to_goal_tree(rules,\
     
     if toprint ==2: print "srule is:  ",srule
 
+    return srule
+    
+
+def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=1):
+    """ bogus!  I've been sending the whole chain through the recursion every time.  Maybe I should just be
+    sending the antecedent through each time and collecting the leaves into the chain on the head of each next recursion"""
+
+##    if backchain == '':
+##        backchain = OR(hypothesis)
+##    if permathesis == '':
+##        permathesis = hypothesis
+
+  
+##    if chains != '':
+##        chains=OR(chains)
+##        if toprint >=1:  print "chains: ", chains,' at line ', getframeinfo(currentframe()).lineno
+
+        
+    achain = []
+
+    srule = ruleParse(hypothesis)
+    if toprint >=1: print "srule is: ",srule,' at lineno ',getframeinfo(currentframe()).lineno
     
     for i in rules:
         consequent = i.consequent()
@@ -99,53 +95,46 @@ def backchain_to_goal_tree(rules,\
         
         if match(consequent[0],hypothesis) != None:
             if chains == '':
-                chains = OR(permathesis)
+                chains = OR(hypothesis)
                 
                 if toprint >=1: print "initializing goal tree:  ",chains,' at line ', getframeinfo(currentframe()).lineno
+            else:
+                if toprint >=1: print "\n\n Appending hypothesis to chains: ",hypothesis,' at line ', getframeinfo(currentframe()).lineno
+                chains.append(OR(hypothesis))
+                if toprint >=1: print "\n\naChains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
                 
-            mdict = match(srule,hypothesis)
+            bindings = match(srule,hypothesis)
             
         else:
             if toprint == 2:  print "The rule in question does not match the current hypothesis, recycling for loop to next rule"
             continue
 
-        if toprint == 2: print "variable bindings: ",mdict, ' at line ', getframeinfo(currentframe()).lineno
+        if toprint == 2: print "variable bindings: ",bindings, ' at line ', getframeinfo(currentframe()).lineno
 
-        if mdict == None:
+        if bindings == None:
             continue
-        elif mdict['y'] in consequent[0]:
+        
+        if bindings['y'] in consequent[0]:
             
             if toprint >=1: print consequent[0] + ' at line ', getframeinfo(currentframe()).lineno
             
             ante = i.antecedent()
             
             for j in ante:
-                andAnte.append(populate(j,mdict))
+                if toprint >=1: print "\n\nFound Antecedent:  ",j,' at line ', getframeinfo(currentframe()).lineno
+                achain.append(populate(j,bindings))
                 
-            if toprint >=1: print "andAnte contains:  ",andAnte,' at line ', getframeinfo(currentframe()).lineno
-            if toprint >=1: print "\n\nchains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
+            chains.append(AND(achain))
 
-            if hypothesis == permathesis:
-                chains.append(AND(andAnte))
-                
-                if toprint >=2: print "\n\nhypothesis is:  ",hypothesis + ' at line ', getframeinfo(currentframe()).lineno
-                if toprint >=2: print "\n\nchains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
+            for k in achain:
+                if toprint >=1: print "\n\nRecursingh on:  ",k,' at line ', getframeinfo(currentframe()).lineno
+                backchain_to_goal_tree(rules,k,AND(chains))
+                if toprint >=1: print "\n\nachain contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
 
-            else:
-                chains.append(OR(hypothesis,AND(andAnte)))
-                if toprint >=1: print "\n\nhypothesis is:  ",hypothesis + ' at line ', getframeinfo(currentframe()).lineno
-                if toprint >=1: print "\n\nchains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
+            if toprint >=1: print "\n\nachains contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
 
+              
 
-                
-            if toprint >=2: print "chains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
-            for k in ante:
-                
-                if toprint>=1: print "\n\nrecursing on: ",k + ' at line ', getframeinfo(currentframe()).lineno
-                
-                backchain_to_goal_tree(rules,populate(k,mdict),permathesis,chains)
-        else:
-            continue
                 
     if toprint >=1: print "\n\nhypothesis is:  ",hypothesis + ' at line ', getframeinfo(currentframe()).lineno
     
@@ -153,9 +142,9 @@ def backchain_to_goal_tree(rules,\
         chains = [hypothesis]
 
     if toprint >=1: print "\n\nchains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
-    return simplify(chains)
+    return chains
 
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
-print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
-#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'alice is an albatross')
+#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+print backchain_to_goal_tree(ZOOKEEPER_RULES, 'alice is an albatross')
