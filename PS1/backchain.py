@@ -35,7 +35,7 @@ def backchain_to_goal_tree(rules, hypothesis, permathesis = '',chains=[],haction
         permathesis = hypothesis
 
     if chains != []:
-        chains = OR(chains)
+        chains = simplify(OR(chains))
         if toprint ==1:  print "orchains: ", simplify(chains)
     andAnte = []
     if toprint >= 2: print "andAnte type is ",str(type(andAnte))
@@ -90,9 +90,9 @@ def backchain_to_goal_tree(rules, hypothesis, permathesis = '',chains=[],haction
             chains.append(AND(andAnte))
             if toprint ==1: print "chains contains:  ",chains
             for k in ante:
-                backchain_to_goal_tree(rules,populate(k,mdict),permathesis,chains)
+                backchain_to_goal_tree(rules,populate(k,mdict),permathesis,simplify(chains))
 
     return OR(permathesis,chains)
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
-#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
