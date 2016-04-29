@@ -42,6 +42,8 @@ def backchain_to_goal_tree(rules,\
                            hobj = '',\
                            toprint = 1,\
                            hwords = []):
+    """ bogus!  I've been sending the whole chain through the recursion every time.  Maybe I should just be
+    sending the antecedent through each time and collecting the leaves into the chain on the head of each next recursion"""
 
 ##    if backchain == '':
 ##        backchain = OR(hypothesis)
