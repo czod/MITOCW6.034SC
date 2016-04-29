@@ -27,8 +27,23 @@ ACTIONS = [" has ",\
            " lays "\
            ]
 
-def backchain_to_goal_tree(rules, hypothesis,haction = '',hsub='',hobj = '',toprint = 1,hwords = []):
+def backchain_to_goal_tree(rules, hypothesis, permathesis = '',chains=[],haction = '',hsub='',hobj = '',toprint = 0,hwords = []):
+
+##    if backchain == '':
+##        backchain = OR(hypothesis)
+    if permathesis == '':
+        permathesis = hypothesis
+
+    if chains != []:
+        chains = OR(chains)
+        if toprint ==1:  print "orchains: ", simplify(chains)
+    andAnte = []
+    if toprint >= 2: print "andAnte type is ",str(type(andAnte))
+
+        
+    if toprint ==1: print "permathesis is:  ",permathesis
     if toprint ==1: print "hypothesis is:  ",hypothesis
+
     hwords = hypothesis.split()
     for i in ACTIONS:
         if i in hypothesis:
@@ -37,16 +52,16 @@ def backchain_to_goal_tree(rules, hypothesis,haction = '',hsub='',hobj = '',topr
             replacer = hsub+i
             hobj = hypothesis.replace(replacer,'')
             
-            if toprint ==1: print "subject is:  ",hsub
-            if toprint ==1: print "predicate is:  ",haction
-            if toprint ==1: print "object is:  ",hobj
+            if toprint ==2: print "subject is:  ",hsub
+            if toprint ==2: print "predicate is:  ",haction
+            if toprint ==2: print "object is:  ",hobj
             break
     if haction == '':
         hsub = hwords[0]
         haction = ' '+ hwords[-1] + ' '
-        if toprint == 1:  print "hypothesis has no explicit object"
-        if toprint ==1: print "subject is:  ",hsub
-        if toprint ==1: print "predicate is:  ",haction
+        if toprint == 2:  print "hypothesis has no explicit object"
+        if toprint == 2: print "subject is:  ",hsub
+        if toprint == 2: print "predicate is:  ",haction
 
     srule = "(?x)" + haction + "(?y)"
     if toprint ==1: print "srule is:  ",srule
@@ -69,8 +84,15 @@ def backchain_to_goal_tree(rules, hypothesis,haction = '',hsub='',hobj = '',topr
         if mdict['y'] in consequent[0]:
             if toprint ==1: print consequent[0]
             ante = i.antecedent()
+            for j in ante:
+                andAnte.append(populate(j,mdict))
+                if toprint ==1: print "andAnte contains:  ",andAnte
+            chains.append(AND(andAnte))
+            if toprint ==1: print "chains contains:  ",chains
             for k in ante:
-                backchain_to_goal_tree(rules,populate(k,mdict))
+                backchain_to_goal_tree(rules,populate(k,mdict),permathesis,chains)
+
+    return OR(permathesis,chains)
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
-print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
