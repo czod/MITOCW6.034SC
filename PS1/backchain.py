@@ -65,14 +65,71 @@ def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 1):
 
     return srule
 
-def backchain_to_goal_tree(rules, hypothesis,chainlist = []):
+def backchain_to_goal_tree(rules, hypothesis,chainlist = [],toprint=1):
 
     srule = ruleParse(hypothesis)
+    if toprint >= 1: print "\n\n srule is:  ",srule,' at line ',getframeinfo(currentframe()).lineno
+    
     if chainlist == []:
         chainlist = [hypothesis]
-        if toprint == 2: print "\n\n Chainlist init is:  ",chainlist,' at line ',getframeinfo(currentframe()).lineno
+        if toprint >= 1: print "\n\n Chainlist init is:  ",chainlist,' at line ',getframeinfo(currentframe()).lineno
+
+    # Get variable bindings from hypothesis
+
+    bindings = match(srule,hypothesis)
+    if toprint >= 1:
+        print "\n\n bindings are:  ",bindings,' at line ',getframeinfo(currentframe()).lineno
+        print "\n"
+    
+    
+
+    for i in rules:
+        cons = i.consequent()
+        if toprint >= 1: print "Consequent is:  ",cons
+
+        # Compare consequent of rule with hypothesis...
+
+        if hypothesis == populate(cons[0],bindings):
+            if toprint >= 1:
+                print "\n\nGot a match:  ",cons[0]
+                print "\n"
+            #  Ok, how to handle recursive antecedent hypotheses...1)  Changes to the chain list
+            #  should not be made unless there is a match between the antecedent hypothesis and
+            #  a rule.  This if: block would be where to make the change.  Not real sure how to do that yet though.
+            #  I guess I need to take the a.h. and encapsulate it in another sublist and replace it's original.
+
+            ante = i.antecedent()
+            alist = []
+            
+            if hypothesis not in chainlist:
+                """ Need to account for the difference between the initial run and a recursive run"""
+                for j in range(len(ante)):
+                    alist.append(populate(ante[j],bindings))
+                chainlist.append(alist)
+            else:
+                """ this would then be the recursive case """
+                for i in range(len(chainlist)):
+                    print i
+                    print chainlist[i]
+                    try:
+                            sdex = chainlist[i].index('opus flies')
+                            hindex = (i,sdex)
+                            print "\n Hypothesis index is:  ",hindex,' at line ',getframeinfo(currentframe()).lineno
+                    except ValueError:
+                            print "target not found in ",chainlist[i]
+                            continue
+        else:
+            #  If the current rule does not match, recycle to next rule.
+            if toprint >= 1: print "\n No match found, move to next rule",getframeinfo(currentframe()).lineno
+            continue
+
+        #  Once a matching rule is found, its antecedents must be retrieved and added to the chain list as
+        #  a sublist.
 
 
+        
+
+        
 
     return chainlist
     
