@@ -109,22 +109,22 @@ def backchain_to_goal_tree(rules, hypothesis,chainlist = [],toprint=1):
             else:
                 """ this would then be the recursive case """
                 for i in range(len(chainlist)):
-                    print i
-                    print chainlist[i]
-                    try:
-                            sdex = chainlist[i].index('opus flies')
-                            hindex = (i,sdex)
-                            print "\n Hypothesis index is:  ",hindex,' at line ',getframeinfo(currentframe()).lineno
-                    except ValueError:
-                            print "target not found in ",chainlist[i]
-                            continue
-        else:
-            #  If the current rule does not match, recycle to next rule.
-            if toprint >= 1: print "\n No match found, move to next rule",getframeinfo(currentframe()).lineno
-            continue
-
-        #  Once a matching rule is found, its antecedents must be retrieved and added to the chain list as
-        #  a sublist.
+####                    print i
+####                    print chainlist[i]
+##                    try:
+##                            sdex = chainlist[i].index('opus flies')
+##                            hindex = (i,sdex)
+####                            print "\n Hypothesis index is:  ",hindex,' at line ',getframeinfo(currentframe()).lineno
+##                    except ValueError:
+####                            print "target not found in ",chainlist[i]
+##                            continue
+##        else:
+##            #  If the current rule does not match, recycle to next rule.
+##            if toprint >= 1: print "\n No match found, move to next rule",getframeinfo(currentframe()).lineno
+##            continue
+##
+##        #  Once a matching rule is found, its antecedents must be retrieved and added to the chain list as
+##        #  a sublist.
 
 
         
@@ -136,4 +136,5 @@ def backchain_to_goal_tree(rules, hypothesis,chainlist = [],toprint=1):
     
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
-print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+print backchain_to_goal_tree(ZOOKEEPER_RULES, 'alice is an albatross')
