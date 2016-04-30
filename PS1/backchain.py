@@ -34,8 +34,13 @@ ACTIONS = [" has ",\
            " does ",\
            " lays "\
            ]
+def funcDebug(mesg):
+    """ message is a dictionary of the form:
+        {"message":(variable,lineno)}"""
+    for i in mesg.iterkeys():
+        print i,mesg[i][0],' at line ',mesg[i][1]
 
-def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 0):
+def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 1):
     
     hwords = hypothesis.split()    
     for i in ACTIONS:
@@ -44,10 +49,11 @@ def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 0):
             hsub = hypothesis.split()[0]
             replacer = hsub+i
             hobj = hypothesis.replace(replacer,'')
-            
-            if toprint ==1: print "subject is:  ",hsub
-            if toprint ==1: print "predicate is:  ",haction
-            if toprint ==1: print "object is:  ",hobj
+
+            #Debug
+            if toprint ==1:
+                clno = getframeinfo(currentframe()).lineno + 1
+                funcDebug({"subject is: ":(hsub,clno),"predicate is:  ":(haction,clno),"object is:  ":(hobj,clno)})
             
             break
         
@@ -55,18 +61,20 @@ def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 0):
         hsub = hwords[0]
         haction = ' '+ hwords[-1] + ' '
         
-        if toprint == 2:  print "hypothesis has no explicit object" + ' at line ', getframeinfo(currentframe()).lineno
-        if toprint == 2: print "subject is:  ",hsub
-        if toprint == 2: print "predicate is:  ",haction
+        #Debug
+        if toprint ==1:
+            clno = getframeinfo(currentframe()).lineno + 1
+            funcDebug({"subject is: ":(hsub,clno),"predicate is:  ":(haction,clno),"object is:  ":(hobj,clno)})
+
 
     srule = "(?x)" + haction + "(?y)"
-    
+
     if toprint ==2: print "srule is:  ",srule
 
     return srule
     
 
-def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=0):
+def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=1):
     """ bogus!  I've been sending the whole chain through the recursion every time.  Maybe I should just be
     sending the antecedent through each time and collecting the leaves into the chain on the head of each next recursion"""
 
@@ -81,8 +89,6 @@ def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=0):
 ##        if toprint >=1:  print "chains: ", chains,' at line ', getframeinfo(currentframe()).lineno
 
         
-    achain = []
-
     srule = ruleParse(hypothesis)
     if toprint >=1: print "srule is: ",srule,' at lineno ',getframeinfo(currentframe()).lineno
 
@@ -90,35 +96,74 @@ def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=0):
 
     
     for i in rules:
+        """ Iterate through each rule, extract the consequent (the OR node) and match it to the hypothesis.  If they match
+            retrieve the antecedent (the AND()) and recurse on each element of the antecedent. """
+
+        #  The OR() Node
         consequent = i.consequent()
-        
+
+        #Debug
         if toprint >=1: print consequent[0]
-        if toprint ==2: print type(consequent[0])
-        if toprint ==2: print string.split(hypothesis)[1:-1]
-        
+        if toprint >=2:clno = getframeinfo(currentframe()).lineno;funcDebug({"consequent type: ":(type(consequent[0]),clno),"hypothesis split is":(string.split(hypothesis)[1:-1],clno)})
+
+        # Make sure the match isn't a NoneType object since that makes the program barf.
         if match(consequent[0],hypothesis) != None:
+            
             if chains == '':
+                # If this is our first rodeo, initialize chains with an OR() node containing the hypothesis.
                 chains = OR(hypothesis)
+
+                #Debug
                 if toprint >=1: print "initializing goal tree:  ",chains,' at line ', getframeinfo(currentframe()).lineno
+
             else:
+
+                #Debug
                 if toprint >=1: print "\n\n Appending hypothesis to chains: ",hypothesis,' at line ', getframeinfo(currentframe()).lineno
+
+                # If chains is not a null string it means that we're hear on a recursion.  Create an OR() node
+                # and append it to the current chain
                 chains.append(OR(hypothesis))
+
+
                 if toprint >=1: print "\n\naChains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
 
 
 
-
+            # Compare the predicate ('y') of the rule consequent to the predicate of the hypothesis.
+            # If they match, grab the antecedents (AND() nodes) of the rule, append and recurse on each individually.
             if bindings['y'] in consequent[0]:
-            
-                if toprint >=1: print consequent[0] + ' at line ', getframeinfo(currentframe()).lineno
+                
+                #Debug
+                if toprint >=1: print '\n '+ consequent[0] + ' at line ', getframeinfo(currentframe()).lineno
                 
                 ante = i.antecedent()
-                
+
+                achain = []
+
+                #Iterating over each antecedent
                 for j in ante:
+                    #Debug
                     if toprint >=1: print "\n\nFound Antecedent:  ",j,' at line ', getframeinfo(currentframe()).lineno
-                    #achain.append(AND(populate(j,bindings)))
+
+                    #Need explicit copy of chains to feed into the recursion otherwise we approach infinity
                     ccchain = copy.copy(chains)
-                    chains.append(backchain_to_goal_tree(rules,AND(populate(j,bindings)),ccchain))
+
+                    # For each iterated antecedent, call backchain with antecedent as hypothesis argument to the
+                    # next recursion.  Then append the output to chains.  The first recursion will not append to chains until
+                    # every recursion below it in the goal tree has recursed and appended.  This sounds like order will
+                    # get all whacked since the nodes are supposed to be in chains in order of occurrence as the
+                    # recursion decends but I'm hoping simplify() on the function return will suss this out.
+                    # Actually, now that I think about it, this could well be the source of my problem.  For example, if
+                    # I recurse on the antecedent "(?x) is a bird", there are two rules with matching consequents.  backchain will
+                    # hit the first rule in order of appearance and then recurse.  backchain will then match the second occurrence of
+                    # the antecedent and recurse.  Since there are no more rules to match, it will fail and return, appending the second
+                    # occurrence onto chains, followed by the first occurrence thus chaining them out of order.  I think the way to fix this
+                    # might be to iterate the rules backward but continue to iterate the antecedents forward.
+                    
+                    chains.append(AND(backchain_to_goal_tree(rules,populate(j,bindings),ccchain)))
+
+                    #Debug
                     if toprint >=1: print "\n\nachain contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
 
                     #chains.append(AND(achain))                
@@ -135,4 +180,4 @@ def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=0):
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
 #print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
-print backchain_to_goal_tree(ZOOKEEPER_RULES, 'alice is an albatross')
+print simplify(backchain_to_goal_tree(ZOOKEEPER_RULES, 'alice is an albatross'))
