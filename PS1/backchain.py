@@ -3,7 +3,7 @@ from production import AND, OR, NOT, PASS, FAIL, IF, THEN, \
 from zookeeper import ZOOKEEPER_RULES
 import string
 from inspect import currentframe, getframeinfo
-import sys
+import sys, copy
 
 sys.setrecursionlimit(20000)
 frameinfo = getframeinfo(currentframe())
@@ -66,7 +66,7 @@ def ruleParse(hypothesis,haction = '',hsub='',hobj='',toprint = 0):
     return srule
     
 
-def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=1):
+def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=0):
     """ bogus!  I've been sending the whole chain through the recursion every time.  Maybe I should just be
     sending the antecedent through each time and collecting the leaves into the chain on the head of each next recursion"""
 
@@ -85,6 +85,9 @@ def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=1):
 
     srule = ruleParse(hypothesis)
     if toprint >=1: print "srule is: ",srule,' at lineno ',getframeinfo(currentframe()).lineno
+
+    bindings = match(srule,hypothesis)
+
     
     for i in rules:
         consequent = i.consequent()
@@ -96,52 +99,37 @@ def backchain_to_goal_tree(rules,hypothesis,chains='',toprint=1):
         if match(consequent[0],hypothesis) != None:
             if chains == '':
                 chains = OR(hypothesis)
-                
                 if toprint >=1: print "initializing goal tree:  ",chains,' at line ', getframeinfo(currentframe()).lineno
             else:
                 if toprint >=1: print "\n\n Appending hypothesis to chains: ",hypothesis,' at line ', getframeinfo(currentframe()).lineno
                 chains.append(OR(hypothesis))
                 if toprint >=1: print "\n\naChains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
-                
-            bindings = match(srule,hypothesis)
+
+
+
+
+            if bindings['y'] in consequent[0]:
             
+                if toprint >=1: print consequent[0] + ' at line ', getframeinfo(currentframe()).lineno
+                
+                ante = i.antecedent()
+                
+                for j in ante:
+                    if toprint >=1: print "\n\nFound Antecedent:  ",j,' at line ', getframeinfo(currentframe()).lineno
+                    #achain.append(AND(populate(j,bindings)))
+                    ccchain = copy.copy(chains)
+                    chains.append(backchain_to_goal_tree(rules,AND(populate(j,bindings)),ccchain))
+                    if toprint >=1: print "\n\nachain contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
+
+                    #chains.append(AND(achain))                
+
+
+                if toprint >=1: print "\n\nachains contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno                
+                
         else:
             if toprint == 2:  print "The rule in question does not match the current hypothesis, recycling for loop to next rule"
             continue
-
-        if toprint == 2: print "variable bindings: ",bindings, ' at line ', getframeinfo(currentframe()).lineno
-
-        if bindings == None:
-            continue
-        
-        if bindings['y'] in consequent[0]:
-            
-            if toprint >=1: print consequent[0] + ' at line ', getframeinfo(currentframe()).lineno
-            
-            ante = i.antecedent()
-            
-            for j in ante:
-                if toprint >=1: print "\n\nFound Antecedent:  ",j,' at line ', getframeinfo(currentframe()).lineno
-                achain.append(populate(j,bindings))
                 
-            chains.append(AND(achain))
-
-            for k in achain:
-                if toprint >=1: print "\n\nRecursingh on:  ",k,' at line ', getframeinfo(currentframe()).lineno
-                backchain_to_goal_tree(rules,k,AND(chains))
-                if toprint >=1: print "\n\nachain contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
-
-            if toprint >=1: print "\n\nachains contains:  ",achain,' at line ', getframeinfo(currentframe()).lineno
-
-              
-
-                
-    if toprint >=1: print "\n\nhypothesis is:  ",hypothesis + ' at line ', getframeinfo(currentframe()).lineno
-    
-    if chains=='':
-        chains = [hypothesis]
-
-    if toprint >=1: print "\n\nchains contains:  ",chains,' at line ', getframeinfo(currentframe()).lineno
     return chains
 
 # Here's an example of running the backward chainer - uncomment
