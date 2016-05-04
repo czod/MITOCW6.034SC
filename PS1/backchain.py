@@ -13,86 +13,56 @@ import string
 # backchainer.  You should not hard-code anything that is
 # specific to a particular rule set.  The backchainer will be
 # tested on things other than ZOOKEEPER_RULES.
+def createStatement(statements,rule):
+    """ This is where the magic happens.  This function encapsulates the results from
+    each rule recursion with the typing required by the backchaining algorithm."""
+    if isinstance(rule,AND):
+        return AND(statements)
+    if isinstance(rule,OR):
+        return OR(statements)
 
-ACTIONS = [" has ",\
-           " is an ",\
-           " is a ",\
-           " is ",\
-           " gives ",\
-           " chews ",\
-           " could not ",\
-           " could ",\
-           " does not ",\
-           " does ",\
-           " lays "\
-           ]
+def backchain_to_goal_tree(rules, hypothesis, toprint = 0):
+    #  Found git entry from junoon53.  Outlined flow.  Recreating from flow.
 
-def backchain_to_goal_tree(rules, hypothesis, permathesis = '',chains=[],haction = '',hsub='',hobj = '',toprint = 0,hwords = []):
+    goal_tree = [hypothesis]
 
-##    if backchain == '':
-##        backchain = OR(hypothesis)
-    if permathesis == '':
-        permathesis = hypothesis
+    for rule in rules:
+        consequent = rule.consequent()
+        for expr in consequent:
+            bindings = match(expr,hypothesis)
 
-    if chains != []:
-        chains = simplify(OR(chains))
-        if toprint ==1:  print "orchains: ", simplify(chains)
-    andAnte = []
-    if toprint >= 2: print "andAnte type is ",str(type(andAnte))
-
-        
-    if toprint ==1: print "permathesis is:  ",permathesis
-    if toprint ==1: print "hypothesis is:  ",hypothesis
-
-    hwords = hypothesis.split()
-    for i in ACTIONS:
-        if i in hypothesis:
-            haction = i
-            hsub = hypothesis.split()[0]
-            replacer = hsub+i
-            hobj = hypothesis.replace(replacer,'')
+            # if bindings is not equal to None, which is return by match when no match is made,
+            # or if the expression retrieved from the consequent of the rule is equal to the
+            # hypothesis, retrieve the antecedents of the rule for tests and recursion.  Otherwise,
+            # fetch the next expression.
             
-            if toprint ==2: print "subject is:  ",hsub
-            if toprint ==2: print "predicate is:  ",haction
-            if toprint ==2: print "object is:  ",hobj
-            break
-    if haction == '':
-        hsub = hwords[0]
-        haction = ' '+ hwords[-1] + ' '
-        if toprint == 2:  print "hypothesis has no explicit object"
-        if toprint == 2: print "subject is:  ",hsub
-        if toprint == 2: print "predicate is:  ",haction
+            if bindings or expr == hypothesis:
+                antecedent = rule.antecedent()
 
-    srule = "(?x)" + haction + "(?y)"
-    if toprint ==1: print "srule is:  ",srule
+                # Is the antecedent a string?  If so we can recurse on it as a new hypothesis.
+                #  If not it must be a list of expressions that we will have to parse.
+                if isinstance(antecedent,str):
+                    new_hypo = populate(antecedent,bindings)
+                    goal_tree.append(backchain_to_goal_tree(rules,new_hypo))
+                    # Once recursion completes and the results of that recursion are
+                    # appended to the goal tree, we can append the new_hypo to the goal tree.
+                    goal_tree.append(new_hypo)
+                else:
+                    # Assuming antecedent is a list of expressions, retrieve them and assemble a list
+                    # of statements to be acted on
+                    #  junoon53 used a list comprehension here but I'm going to write out the whole for
+                    # loop just to make sure I know what is going on.
+                    statements = []
+                    new_goal_tree=[]
+                    for anteEx in antecedent:
+                        statements.append(populate(anteEx,bindings))
+                    for statement in statements:
+                        new_goal_tree.append(backchain_to_goal_tree(rules,statement))
+                    goal_tree.append(createStatement(new_goal_tree,antecedent))
+                        
 
-    
-    for i in rules:
-        consequent = i.consequent()
-        
-        if toprint ==1: print consequent[0]
-        if toprint ==2: print type(consequent[0])
-        if toprint ==2: print string.split(hypothesis)[1:-1]
-        
-        if match(consequent[0],hypothesis) != None:
-            mdict = match(srule,hypothesis)
-        else:
-            continue
+                    
 
-        if toprint ==1: print "variable bindings: ",mdict
-        
-        if mdict['y'] in consequent[0]:
-            if toprint ==1: print consequent[0]
-            ante = i.antecedent()
-            for j in ante:
-                andAnte.append(populate(j,mdict))
-                if toprint ==1: print "andAnte contains:  ",andAnte
-            chains.append(AND(andAnte))
-            if toprint ==1: print "chains contains:  ",chains
-            for k in ante:
-                backchain_to_goal_tree(rules,populate(k,mdict),permathesis,simplify(chains))
-
-    return OR(permathesis,chains)
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
 print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
