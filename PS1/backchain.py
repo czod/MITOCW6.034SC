@@ -3,6 +3,8 @@ from production import AND, OR, NOT, PASS, FAIL, IF, THEN, \
 from zookeeper import ZOOKEEPER_RULES
 import string
 
+from inspect import currentframe, getframeinfo
+
 # This function, which you need to write, takes in a hypothesis
 # that can be determined using a set of rules, and outputs a goal
 # tree of which statements it would need to test to prove that
@@ -13,9 +15,20 @@ import string
 # backchainer.  You should not hard-code anything that is
 # specific to a particular rule set.  The backchainer will be
 # tested on things other than ZOOKEEPER_RULES.
+
+def funcDebug(mesg,clno):
+    """ mesg is a dictionary of the form:
+        {"mesg":var}
+        clno =  current line number        """
+    # debug template  if toprint >= :clno = getframeinfo(currentframe()).lineno;funcDebug({"":,"":},clno)
+    for i in mesg.iterkeys():
+        print i,mesg[i],' at line ',clno
+
+
 def createStatement(statements,rule):
     """ This is where the magic happens.  This function encapsulates the results from
     each rule recursion with the typing required by the backchaining algorithm."""
+
     if isinstance(rule,AND):
         return AND(statements)
     if isinstance(rule,OR):
@@ -26,10 +39,17 @@ def backchain_to_goal_tree(rules, hypothesis, toprint = 0):
 
     goal_tree = [hypothesis]
 
+    if toprint >=1 : clno = getframeinfo(currentframe()).lineno;funcDebug({"\n Hypothesis is: ":hypothesis,"\n Goal tree is: ":goal_tree},clno)
+
     for rule in rules:
         consequent = rule.consequent()
+
+        if toprint >= 1: clno = getframeinfo(currentframe()).lineno;funcDebug({"\n Rule is ":rule,"\n Consequent is ":consequent},clno)
+        
         for expr in consequent:
             bindings = match(expr,hypothesis)
+
+            if toprint >= 1: clno = getframeinfo(currentframe()).lineno;funcDebug({"\n expr is ":expr,"\n bindings is ":bindings},clno)
 
             # if bindings is not equal to None, which is return by match when no match is made,
             # or if the expression retrieved from the consequent of the rule is equal to the
@@ -60,9 +80,10 @@ def backchain_to_goal_tree(rules, hypothesis, toprint = 0):
                         new_goal_tree.append(backchain_to_goal_tree(rules,statement))
                     goal_tree.append(createStatement(new_goal_tree,antecedent))
                         
-
+    return simplify(OR(goal_tree))
                     
 
 # Here's an example of running the backward chainer - uncomment
 # it to see it work:
-print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+#print backchain_to_goal_tree(ZOOKEEPER_RULES, 'opus is a penguin')
+#print backchain_to_goal_tree(ZOOKEEPER_RULES,'stuff')
